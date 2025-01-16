@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.FragmentTransaction;
 import android.content.ComponentCallbacks2;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -13,6 +14,9 @@ import android.os.Bundle;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +24,10 @@ import java.util.List;
  * Created by jhansi on 28/03/15.
  */
 public class ScanActivity extends Activity implements IScanner, ComponentCallbacks2 {
+
+    private static final int MAX_WIDTH = 1920; // Maximum width in pixels
+    private static final int MAX_HEIGHT = 1080; // Maximum height in pixels
+    private static final int MAX_FILE_SIZE_KB = 1024; // Maximum file size in KB
 
     String[] permissions = new String[2];
 
@@ -35,7 +43,7 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
         permissions[1] = Manifest.permission.CAMERA;
 
         setContentView(R.layout.scan_layout);
-        if(getActionBar() != null){
+        if (getActionBar() != null) {
             getActionBar().hide();
         }
         checkPermissions();
@@ -50,7 +58,7 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
             }
         }
         if (!listPermissionsNeeded.isEmpty()) {
-            ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), 100);
+            ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[0]), 100);
             return;
         }
         init();
@@ -59,8 +67,7 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == 100) {
-            if (grantResults.length > 0
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 init();
             }
         }
@@ -84,15 +91,30 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
 
     @Override
     public void onBitmapSelect(Uri uri) {
-        ScanFragment fragment = new ScanFragment();
-        Bundle bundle = new Bundle();
-        bundle.putParcelable(ScanConstants.SELECTED_BITMAP, uri);
-        fragment.setArguments(bundle);
-        android.app.FragmentManager fragmentManager = getFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.add(R.id.content, fragment);
-        fragmentTransaction.addToBackStack(ScanFragment.class.toString());
-        fragmentTransaction.commit();
+        try {
+            Bitmap originalBitmap = getBitmapFromUri(this, uri);
+
+            // Check and resize image if necessary
+            Bitmap resizedBitmap = resizeBitmapIfNeeded(originalBitmap, MAX_WIDTH, MAX_HEIGHT);
+
+            // Compress image to ensure it's under the file size limit
+            File compressedFile = compressBitmapToFile(resizedBitmap, MAX_FILE_SIZE_KB);
+
+            Uri compressedUri = Uri.fromFile(compressedFile);
+
+            ScanFragment fragment = new ScanFragment();
+            Bundle bundle = new Bundle();
+            bundle.putParcelable(ScanConstants.SELECTED_BITMAP, compressedUri);
+            fragment.setArguments(bundle);
+
+            android.app.FragmentManager fragmentManager = getFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+            fragmentTransaction.add(R.id.content, fragment);
+            fragmentTransaction.addToBackStack(ScanFragment.class.toString());
+            fragmentTransaction.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -108,54 +130,59 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
         fragmentTransaction.commit();
     }
 
+    /**
+     * Resize the bitmap if its dimensions exceed the maximum allowed size.
+     */
+    private Bitmap resizeBitmapIfNeeded(Bitmap bitmap, int maxWidth, int maxHeight) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        if (width > maxWidth || height > maxHeight) {
+            float aspectRatio = (float) width / height;
+            if (width > height) {
+                width = maxWidth;
+                height = (int) (maxWidth / aspectRatio);
+            } else {
+                height = maxHeight;
+                width = (int) (maxHeight * aspectRatio);
+            }
+            return Bitmap.createScaledBitmap(bitmap, width, height, true);
+        }
+        return bitmap;
+    }
+
+    /**
+     * Compress the bitmap to a file with a maximum size limit.
+     */
+    private File compressBitmapToFile(Bitmap bitmap, int maxFileSizeKB) throws IOException {
+        File tempFile = File.createTempFile("compressed_", ".jpg", getCacheDir());
+        FileOutputStream fos = new FileOutputStream(tempFile);
+
+        int quality = 100; // Start with maximum quality
+        do {
+            fos.flush();
+            fos.close();
+
+            fos = new FileOutputStream(tempFile);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, fos);
+
+            quality -= 5; // Reduce quality by 5% each iteration
+        } while (tempFile.length() > maxFileSizeKB * 1024 && quality > 10); // Stop if quality is too low
+
+        fos.close();
+        return tempFile;
+    }
+
+    /**
+     * Get a bitmap from the given URI.
+     */
+    private Bitmap getBitmapFromUri(Context context, Uri uri) throws IOException {
+        return android.provider.MediaStore.Images.Media.getBitmap(context.getContentResolver(), uri);
+    }
+
     @Override
     public void onTrimMemory(int level) {
-        switch (level) {
-            case ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN:
-                /*
-                   Release any UI objects that currently hold memory.
-
-                   The user interface has moved to the background.
-                */
-                break;
-            case ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE:
-            case ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW:
-            case ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL:
-                /*
-                   Release any memory that your app doesn't need to run.
-
-                   The device is running low on memory while the app is running.
-                   The event raised indicates the severity of the memory-related event.
-                   If the event is TRIM_MEMORY_RUNNING_CRITICAL, then the system will
-                   begin killing background processes.
-                */
-                break;
-            case ComponentCallbacks2.TRIM_MEMORY_BACKGROUND:
-            case ComponentCallbacks2.TRIM_MEMORY_MODERATE:
-            case ComponentCallbacks2.TRIM_MEMORY_COMPLETE:
-                /*
-                   Release as much memory as the process can.
-
-                   The app is on the LRU list and the system is running low on memory.
-                   The event raised indicates where the app sits within the LRU list.
-                   If the event is TRIM_MEMORY_COMPLETE, the process will be one of
-                   the first to be terminated.
-                */
-//                new AlertDialog.Builder(this)
-//                        .setTitle(R.string.low_memory)
-//                        .setMessage(R.string.low_memory_message)
-//                        .create()
-//                        .show();
-                break;
-            default:
-                /*
-                  Release any non-critical data structures.
-
-                  The app received an unrecognized memory level value
-                  from the system. Treat this as a generic low-memory message.
-                */
-                break;
-        }
+        // Handle memory trim events here
     }
 
     public native Bitmap getScannedBitmap(Bitmap bitmap, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
