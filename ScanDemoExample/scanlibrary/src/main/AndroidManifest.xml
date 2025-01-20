@@ -12,7 +12,7 @@
 
     <application
         android:allowBackup="true"
-        android:hardwareAccelerated="true"
+        android:hardwareAccelerated="false"
         android:largeHeap="true">
         <activity android:name=".ScanActivity"
             android:configChanges="orientation|screenSize"
