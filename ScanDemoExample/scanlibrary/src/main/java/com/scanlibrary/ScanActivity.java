@@ -31,8 +31,6 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.wtf("Lib version", "1.0.0 - resize image");
-
         if (Build.VERSION.SDK_INT >= 33) {
             permissions[0] = Manifest.permission.READ_MEDIA_IMAGES;
         } else {
