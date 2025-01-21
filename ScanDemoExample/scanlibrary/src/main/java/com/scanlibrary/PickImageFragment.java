@@ -178,48 +178,55 @@ public class PickImageFragment extends Fragment {
             getActivity().finish();
         }
         if (bitmap != null) {
-            
-            if ( camorgal == 0 )
-            {
-            //PickImageFragment.this.getActivity().getContentResolver().notifyChange(fileUri, null);
-            File imageFile = new File(fileUri.getPath());
-            ExifInterface exif = null;
-            
-            try
-            {
-                exif = new ExifInterface(imageFile.getAbsolutePath());
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
-            
-            int orientation = 0;
-            if (exif != null)
-            {
-                orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-            }
-            
-            int rotate = 0;
-            switch (orientation) {
-                case ExifInterface.ORIENTATION_ROTATE_270:
-                    rotate = 270;
-                    break;
-                case ExifInterface.ORIENTATION_ROTATE_180:
-                    rotate = 180;
-                    break;
-                case ExifInterface.ORIENTATION_ROTATE_90:
-                    rotate = 90;
-                    break;
+            if (camorgal == 0) {
+                // Handle EXIF rotation
+                File imageFile = new File(fileUri.getPath());
+                ExifInterface exif = null;
+
+                try {
+                    exif = new ExifInterface(imageFile.getAbsolutePath());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                int orientation = 0;
+                if (exif != null) {
+                    orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+                }
+
+                int rotate = 0;
+                switch (orientation) {
+                    case ExifInterface.ORIENTATION_ROTATE_270:
+                        rotate = 270;
+                        break;
+                    case ExifInterface.ORIENTATION_ROTATE_180:
+                        rotate = 180;
+                        break;
+                    case ExifInterface.ORIENTATION_ROTATE_90:
+                        rotate = 90;
+                        break;
+                }
+
+                // Rotate the bitmap if necessary
+                android.graphics.Matrix matrix = new android.graphics.Matrix();
+                matrix.postRotate(rotate);
+                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
             }
 
-            android.graphics.Matrix matrix = new android.graphics.Matrix();
-            matrix.postRotate(rotate);
-            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-            }
-            postImagePick(bitmap);
+            // Compress the bitmap
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            // Compress to JPEG format with 80% quality (adjust as needed)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 10, byteArrayOutputStream);
+            byte[] bitmapData = byteArrayOutputStream.toByteArray();
+
+            // Create a compressed bitmap from the byte array
+            Bitmap compressedBitmap = BitmapFactory.decodeByteArray(bitmapData, 0, bitmapData.length);
+
+            // Now use the compressed bitmap
+            postImagePick(compressedBitmap);
         }
     }
+
 
     protected void postImagePick(Bitmap bitmap) {
         Uri uri = Utils.getUri(getActivity(), bitmap);
