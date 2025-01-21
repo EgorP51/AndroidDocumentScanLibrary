@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import android.util.Log;
+
 
 /**
  * Created by jhansi on 28/03/15.
@@ -106,8 +108,19 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
 
     @Override
     public void onScanFinish(Uri uri) {
+        Log.i("ScanActivity", "ScanActivity.java onScanFinish");
         try {
             Bitmap bitmap = resizeBitmap(uri);
+
+            // Log the size of the bitmap
+            if (bitmap != null) {
+                int width = bitmap.getWidth();
+                int height = bitmap.getHeight();
+                Log.i("ScanActivity", "Bitmap Size: Width = " + width + ", Height = " + height);
+            } else {
+                Log.w("ScanActivity", "Bitmap is null after resizing");
+            }
+
             ResultFragment fragment = new ResultFragment();
             Bundle bundle = new Bundle();
             bundle.putParcelable(ScanConstants.SCANNED_RESULT, uri);
@@ -118,9 +131,11 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
             fragmentTransaction.addToBackStack(ResultFragment.class.toString());
             fragmentTransaction.commit();
         } catch (IOException e) {
+            Log.e("ScanActivity", "Error resizing bitmap: " + e.getMessage());
             e.printStackTrace();
         }
     }
+
 
     private Bitmap resizeBitmap(Uri uri) throws IOException {
         // Get the input stream from the URI

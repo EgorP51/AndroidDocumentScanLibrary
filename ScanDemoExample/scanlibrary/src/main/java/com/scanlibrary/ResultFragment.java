@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.util.Log;
 
 import java.io.IOException;
 
@@ -46,6 +47,7 @@ public class ResultFragment extends Fragment {
     }
 
     private void init() {
+        Log.i("ResultFragment", "ResultFragment.java init start");
         scannedImageView = (ImageView) view.findViewById(R.id.scannedImage);
         originalButton = (Button) view.findViewById(R.id.original);
         if(getActivity().getIntent().getStringExtra(ScanConstants.SCAN_ORG_TEXT) != null){
