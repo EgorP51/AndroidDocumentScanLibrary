@@ -6,6 +6,7 @@ import android.app.FragmentTransaction;
 import android.content.ComponentCallbacks2;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,6 +14,8 @@ import android.os.Bundle;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,10 +25,13 @@ import java.util.List;
 public class ScanActivity extends Activity implements IScanner, ComponentCallbacks2 {
 
     String[] permissions = new String[2];
+    private static final int MAX_WIDTH = 800;  // Set maximum width
+    private static final int MAX_HEIGHT = 800; // Set maximum height
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.wtf("Lib version", "1.0.0 - resize image");
 
         if (Build.VERSION.SDK_INT >= 33) {
             permissions[0] = Manifest.permission.READ_MEDIA_IMAGES;
@@ -84,76 +90,92 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
 
     @Override
     public void onBitmapSelect(Uri uri) {
-        ScanFragment fragment = new ScanFragment();
-        Bundle bundle = new Bundle();
-        bundle.putParcelable(ScanConstants.SELECTED_BITMAP, uri);
-        fragment.setArguments(bundle);
-        android.app.FragmentManager fragmentManager = getFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.add(R.id.content, fragment);
-        fragmentTransaction.addToBackStack(ScanFragment.class.toString());
-        fragmentTransaction.commit();
+        try {
+            Bitmap bitmap = resizeBitmap(uri);
+            ScanFragment fragment = new ScanFragment();
+            Bundle bundle = new Bundle();
+            bundle.putParcelable(ScanConstants.SELECTED_BITMAP, uri);
+            fragment.setArguments(bundle);
+            android.app.FragmentManager fragmentManager = getFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+            fragmentTransaction.add(R.id.content, fragment);
+            fragmentTransaction.addToBackStack(ScanFragment.class.toString());
+            fragmentTransaction.commit();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onScanFinish(Uri uri) {
-        ResultFragment fragment = new ResultFragment();
-        Bundle bundle = new Bundle();
-        bundle.putParcelable(ScanConstants.SCANNED_RESULT, uri);
-        fragment.setArguments(bundle);
-        android.app.FragmentManager fragmentManager = getFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.add(R.id.content, fragment);
-        fragmentTransaction.addToBackStack(ResultFragment.class.toString());
-        fragmentTransaction.commit();
+        try {
+            Bitmap bitmap = resizeBitmap(uri);
+            ResultFragment fragment = new ResultFragment();
+            Bundle bundle = new Bundle();
+            bundle.putParcelable(ScanConstants.SCANNED_RESULT, uri);
+            fragment.setArguments(bundle);
+            android.app.FragmentManager fragmentManager = getFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+            fragmentTransaction.add(R.id.content, fragment);
+            fragmentTransaction.addToBackStack(ResultFragment.class.toString());
+            fragmentTransaction.commit();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Bitmap resizeBitmap(Uri uri) throws IOException {
+        // Get the input stream from the URI
+        InputStream inputStream = getContentResolver().openInputStream(uri);
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true; // Get dimensions only
+        BitmapFactory.decodeStream(inputStream, null, options);
+        inputStream.close();
+
+        // Calculate inSampleSize
+        options.inSampleSize = calculateInSampleSize(options, MAX_WIDTH, MAX_HEIGHT);
+        options.inJustDecodeBounds = false; // Now decode the actual bitmap
+        inputStream = getContentResolver().openInputStream(uri);
+        Bitmap resizedBitmap = BitmapFactory.decodeStream(inputStream, null, options);
+        inputStream.close();
+        return resizedBitmap;
+    }
+
+    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
     }
 
     @Override
     public void onTrimMemory(int level) {
         switch (level) {
             case ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN:
-                /*
-                   Release any UI objects that currently hold memory.
-
-                   The user interface has moved to the background.
-                */
                 break;
             case ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE:
             case ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW:
             case ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL:
-                /*
-                   Release any memory that your app doesn't need to run.
-
-                   The device is running low on memory while the app is running.
-                   The event raised indicates the severity of the memory-related event.
-                   If the event is TRIM_MEMORY_RUNNING_CRITICAL, then the system will
-                   begin killing background processes.
-                */
                 break;
             case ComponentCallbacks2.TRIM_MEMORY_BACKGROUND:
             case ComponentCallbacks2.TRIM_MEMORY_MODERATE:
             case ComponentCallbacks2.TRIM_MEMORY_COMPLETE:
-                /*
-                   Release as much memory as the process can.
-
-                   The app is on the LRU list and the system is running low on memory.
-                   The event raised indicates where the app sits within the LRU list.
-                   If the event is TRIM_MEMORY_COMPLETE, the process will be one of
-                   the first to be terminated.
-                */
-//                new AlertDialog.Builder(this)
-//                        .setTitle(R.string.low_memory)
-//                        .setMessage(R.string.low_memory_message)
-//                        .create()
-//                        .show();
                 break;
             default:
-                /*
-                  Release any non-critical data structures.
-
-                  The app received an unrecognized memory level value
-                  from the system. Treat this as a generic low-memory message.
-                */
                 break;
         }
     }
