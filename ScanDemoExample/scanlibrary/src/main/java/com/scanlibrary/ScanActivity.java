@@ -6,14 +6,18 @@ import android.app.FragmentTransaction;
 import android.content.ComponentCallbacks2;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;  // Import Log class
+import android.provider.MediaStore;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,13 +26,11 @@ import java.util.List;
  */
 public class ScanActivity extends Activity implements IScanner, ComponentCallbacks2 {
 
-    private static final String TAG = "ScanActivity"; // Tag for logging
     String[] permissions = new String[2];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "onCreate: Activity created");
 
         if (Build.VERSION.SDK_INT >= 33) {
             permissions[0] = Manifest.permission.READ_MEDIA_IMAGES;
@@ -41,23 +43,19 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
         if (getActionBar() != null) {
             getActionBar().hide();
         }
-        Log.d(TAG, "onCreate: Permissions set, checking permissions");
         checkPermissions();
     }
 
     private void checkPermissions() {
-        Log.d(TAG, "checkPermissions: Checking permissions");
         List<String> listPermissionsNeeded = new ArrayList<>();
         for (String p : permissions) {
             int result = ContextCompat.checkSelfPermission(this, p);
-            Log.d(TAG, "checkPermissions: Checking permission " + p + " - result: " + result);
             if (result != PackageManager.PERMISSION_GRANTED) {
                 listPermissionsNeeded.add(p);
             }
         }
         if (!listPermissionsNeeded.isEmpty()) {
-            Log.d(TAG, "checkPermissions: Requesting permissions: " + listPermissionsNeeded);
-            ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), 100);
+            ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[0]), 100);
             return;
         }
         init();
@@ -65,19 +63,14 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        Log.d(TAG, "onRequestPermissionsResult: Permission request code: " + requestCode);
         if (requestCode == 100) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "onRequestPermissionsResult: Permissions granted");
                 init();
-            } else {
-                Log.d(TAG, "onRequestPermissionsResult: Permissions denied");
             }
         }
     }
 
     private void init() {
-        Log.d(TAG, "init: Initializing ScanActivity");
         PickImageFragment fragment = new PickImageFragment();
         Bundle bundle = new Bundle();
         bundle.putInt(ScanConstants.OPEN_INTENT_PREFERENCE, getPreferenceContent());
@@ -86,34 +79,60 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
         android.app.FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.add(R.id.content, fragment);
-        Log.d(TAG, "init: Fragment added");
         fragmentTransaction.commit();
     }
 
     protected int getPreferenceContent() {
-        int preference = getIntent().getIntExtra(ScanConstants.OPEN_INTENT_PREFERENCE, 0);
-        Log.d(TAG, "getPreferenceContent: Preference content: " + preference);
-        return preference;
+        return getIntent().getIntExtra(ScanConstants.OPEN_INTENT_PREFERENCE, 0);
     }
 
     @Override
     public void onBitmapSelect(Uri uri) {
-        Log.d(TAG, "onBitmapSelect: Bitmap selected: " + uri);
-        ScanFragment fragment = new ScanFragment();
-        Bundle bundle = new Bundle();
-        bundle.putParcelable(ScanConstants.SELECTED_BITMAP, uri);
-        fragment.setArguments(bundle);
-        android.app.FragmentManager fragmentManager = getFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.add(R.id.content, fragment);
-        fragmentTransaction.addToBackStack(ScanFragment.class.toString());
-        Log.d(TAG, "onBitmapSelect: Fragment added for bitmap select");
-        fragmentTransaction.commit();
+        try {
+            // Получаем изображение из Uri
+            Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), uri);
+
+            // Сжимаем изображение до минимального качества
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 10, baos); // 10 - это качество, можно уменьшить для меньшего размера
+            byte[] imageBytes = baos.toByteArray();
+
+            // Преобразуем сжатые байты обратно в Bitmap
+            Bitmap compressedBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+
+            // Передаем сжатое изображение в ScanFragment
+            ScanFragment fragment = new ScanFragment();
+            Bundle bundle = new Bundle();
+            Uri compressedUri = saveCompressedBitmap(compressedBitmap); // Метод для сохранения
+            bundle.putParcelable(ScanConstants.SELECTED_BITMAP, compressedUri);
+            fragment.setArguments(bundle);
+            android.app.FragmentManager fragmentManager = getFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+            fragmentTransaction.add(R.id.content, fragment);
+            fragmentTransaction.addToBackStack(ScanFragment.class.toString());
+            fragmentTransaction.commit();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Метод для сохранения сжатого Bitmap и получения Uri
+    private Uri saveCompressedBitmap(Bitmap bitmap) {
+        try {
+            File file = new File(getCacheDir(), "compressed_image.jpg"); // Сохранение во временное хранилище
+            FileOutputStream fos = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 10, fos); // Сжимаем до 10%
+            fos.flush();
+            fos.close();
+            return Uri.fromFile(file); // Возвращаем Uri
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public void onScanFinish(Uri uri) {
-        Log.d(TAG, "onScanFinish: Scan finished with result: " + uri);
         ResultFragment fragment = new ResultFragment();
         Bundle bundle = new Bundle();
         bundle.putParcelable(ScanConstants.SCANNED_RESULT, uri);
@@ -122,42 +141,43 @@ public class ScanActivity extends Activity implements IScanner, ComponentCallbac
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.add(R.id.content, fragment);
         fragmentTransaction.addToBackStack(ResultFragment.class.toString());
-        Log.d(TAG, "onScanFinish: Fragment added for scan result");
         fragmentTransaction.commit();
     }
 
     @Override
     public void onTrimMemory(int level) {
-        Log.d(TAG, "onTrimMemory: Level: " + level);
         switch (level) {
             case ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN:
-                Log.d(TAG, "onTrimMemory: UI hidden");
+                // Освобождаем любые объекты UI, которые занимают память
                 break;
             case ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE:
             case ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW:
             case ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL:
-                Log.d(TAG, "onTrimMemory: Running low on memory");
+                // Освобождаем ненужную память
                 break;
             case ComponentCallbacks2.TRIM_MEMORY_BACKGROUND:
             case ComponentCallbacks2.TRIM_MEMORY_MODERATE:
             case ComponentCallbacks2.TRIM_MEMORY_COMPLETE:
-                Log.d(TAG, "onTrimMemory: Memory cleanup required");
+                // Освобождаем как можно больше памяти
                 break;
             default:
-                Log.d(TAG, "onTrimMemory: Unknown memory level");
+                // Освобождаем любые некритичные структуры данных
                 break;
         }
     }
 
     public native Bitmap getScannedBitmap(Bitmap bitmap, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
+
     public native Bitmap getGrayBitmap(Bitmap bitmap);
+
     public native Bitmap getMagicColorBitmap(Bitmap bitmap);
+
     public native Bitmap getBWBitmap(Bitmap bitmap);
+
     public native float[] getPoints(Bitmap bitmap);
 
     static {
         System.loadLibrary("opencv_java3");
         System.loadLibrary("Scanner");
-        Log.d(TAG, "Native libraries loaded");
     }
 }
