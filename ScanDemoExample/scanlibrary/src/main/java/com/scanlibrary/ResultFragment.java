@@ -106,24 +106,30 @@ public class ResultFragment extends Fragment {
     }
 
     public void setScannedImage(Bitmap scannedImage) {
-        Log.d("TAG", "setScannedImage: Setting image to ImageView");
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        scannedImage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-        byte[] byteArray = stream.toByteArray();
+        // Define the output stream for compression
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-        if (byteArray.length > 1024 * 1024) {
-            Log.d("TAG", "setScannedImage: Image exceeds 1MB, compressing");
-            int quality = 100;
-            do {
-                stream.reset();
-                quality -= 5;
-                scannedImage.compress(Bitmap.CompressFormat.JPEG, quality, stream);
-                byteArray = stream.toByteArray();
-            } while (byteArray.length > 1024 * 1024 && quality > 5);
+        // Compress the bitmap to JPEG format with 80% quality
+        boolean isCompressed = scannedImage.compress(Bitmap.CompressFormat.JPEG, 10, outputStream);
+
+        if (isCompressed) {
+            // Convert the compressed image to a byte array
+            byte[] compressedImageData = outputStream.toByteArray();
+
+            // Optionally, save the compressed image to a file (example code commented out)
+            // FileOutputStream fileOutputStream = new FileOutputStream(new File(getExternalFilesDir(null), "compressed_image.jpg"));
+            // fileOutputStream.write(compressedImageData);
+            // fileOutputStream.close();
+
+            // Decode the byte array back into a Bitmap
+            Bitmap compressedBitmap = BitmapFactory.decodeByteArray(compressedImageData, 0, compressedImageData.length);
+
+            // Set the compressed Bitmap to the ImageView
+            scannedImageView.setImageBitmap(compressedBitmap);
+        } else {
+            // Handle the error case where compression failed
+            Log.e("ImageCompression", "Failed to compress the image");
         }
-
-        Bitmap compressedImage = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length);
-        scannedImageView.setImageBitmap(compressedImage);
     }
 
 
