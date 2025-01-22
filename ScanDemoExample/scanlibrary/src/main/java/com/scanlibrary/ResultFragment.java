@@ -106,13 +106,13 @@ public class ResultFragment extends Fragment {
     }
 
     public void setScannedImage(Bitmap scannedImage) {
-        Log.d(TAG, "setScannedImage: Setting image to ImageView");
+        Log.d("TAG", "setScannedImage: Setting image to ImageView");
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         scannedImage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         byte[] byteArray = stream.toByteArray();
 
         if (byteArray.length > 1024 * 1024) {
-            Log.d(TAG, "setScannedImage: Image exceeds 1MB, compressing");
+            Log.d("TAG", "setScannedImage: Image exceeds 1MB, compressing");
             int quality = 100;
             do {
                 stream.reset();
