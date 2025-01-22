@@ -104,8 +104,30 @@ public class ResultFragment extends Fragment {
     }
 
     public void setScannedImage(Bitmap scannedImage) {
-        //scannedImageView.setImageBitmap(scannedImage);
+        // Convert the bitmap to a byte array to check its size
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        scannedImage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+        byte[] byteArray = stream.toByteArray();
+
+        // Check if the size is larger than 1MB (1MB = 1024 * 1024 bytes)
+        if (byteArray.length > 1024 * 1024) {
+            // Compress the image until it's less than 1MB
+            int quality = 100; // Start with max quality
+            do {
+                stream.reset(); // Clear the stream for the next iteration
+                quality -= 5; // Reduce the quality by 5% increments
+                scannedImage.compress(Bitmap.CompressFormat.JPEG, quality, stream);
+                byteArray = stream.toByteArray();
+            } while (byteArray.length > 1024 * 1024 && quality > 5); // Stop if quality is too low
+        }
+
+        // Create a new bitmap from the compressed byte array
+        Bitmap compressedImage = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length);
+
+        // Set the (possibly compressed) image to the ImageView
+        scannedImageView.setImageBitmap(compressedImage);
     }
+
 
     private class DoneButtonClickListener implements View.OnClickListener {
         @Override
