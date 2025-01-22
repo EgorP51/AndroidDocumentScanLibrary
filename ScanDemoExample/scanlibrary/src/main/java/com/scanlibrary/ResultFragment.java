@@ -1,3 +1,5 @@
+package com.scanlibrary;
+
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
@@ -16,7 +18,6 @@ import android.widget.ImageView;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
 
 /**
  * Created by jhansi on 29/03/15.
