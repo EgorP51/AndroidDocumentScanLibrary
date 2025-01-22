@@ -104,7 +104,7 @@ public class ResultFragment extends Fragment {
     }
 
     public void setScannedImage(Bitmap scannedImage) {
-        scannedImageView.setImageBitmap(scannedImage);
+        //scannedImageView.setImageBitmap(scannedImage);
     }
 
     private class DoneButtonClickListener implements View.OnClickListener {
