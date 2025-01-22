@@ -5,19 +5,20 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.util.Log;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+
+import android.graphics.BitmapFactory;
+import android.widget.ImageView;
 
 /**
  * Created by jhansi on 29/03/15.
@@ -105,34 +106,48 @@ public class ResultFragment extends Fragment {
         return uri;
     }
 
-    public void setScannedImage(Bitmap scannedImage) {
-        Log.e("ImageCompression", "ImageCompression start");
+    private void setScannedImage(String imagePath) {
+        // Настройка параметров для уменьшения размера изображения
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true; // Сначала получаем размеры изображения без загрузки
+        BitmapFactory.decodeFile(imagePath, options);
 
-        if (scannedImage == null) {
-            Log.e("ImageCompression", "Input image is null");
-            return;
-        }
+        // Получаем исходные размеры изображения
+        int originalWidth = options.outWidth;
+        int originalHeight = options.outHeight;
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        boolean isCompressed = scannedImage.compress(Bitmap.CompressFormat.JPEG, 10, outputStream);
+        // Определяем целевые размеры для ImageView
+        int targetWidth = scannedImageView.getWidth();
+        int targetHeight = scannedImageView.getHeight();
 
-        if (isCompressed) {
-            byte[] compressedImageData = outputStream.toByteArray();
+        // Рассчитываем коэффициент уменьшения (inSampleSize)
+        options.inSampleSize = calculateInSampleSize(options, targetWidth, targetHeight);
 
-            if (compressedImageData != null && compressedImageData.length > 0) {
-                Bitmap compressedBitmap = BitmapFactory.decodeByteArray(compressedImageData, 0, compressedImageData.length);
+        // Декодируем изображение с уменьшением
+        options.inJustDecodeBounds = false; // Теперь загружаем само изображение
+        Bitmap scaledBitmap = BitmapFactory.decodeFile(imagePath, options);
 
-                if (compressedBitmap != null) {
-                    runOnUiThread(() -> scannedImageView.setImageBitmap(compressedBitmap));
-                } else {
-                    Log.e("ImageCompression", "Failed to decode compressed image data");
-                }
-            } else {
-                Log.e("ImageCompression", "Compressed image data is empty or null");
+        // Устанавливаем уменьшенное изображение в ImageView
+        scannedImageView.setImageBitmap(scaledBitmap);
+    }
+
+    // Метод для вычисления коэффициента уменьшения
+    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        int height = options.outHeight;
+        int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            int halfHeight = height / 2;
+            int halfWidth = width / 2;
+
+            // Рассчитываем максимально возможный коэффициент уменьшения
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
             }
-        } else {
-            Log.e("ImageCompression", "Failed to compress the image");
         }
+
+        return inSampleSize;
     }
 
 
