@@ -106,28 +106,31 @@ public class ResultFragment extends Fragment {
     }
 
     public void setScannedImage(Bitmap scannedImage) {
-        // Define the output stream for compression
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Log.e("ImageCompression", "ImageCompression start");
 
-        // Compress the bitmap to JPEG format with 80% quality
+        if (scannedImage == null) {
+            Log.e("ImageCompression", "Input image is null");
+            return;
+        }
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         boolean isCompressed = scannedImage.compress(Bitmap.CompressFormat.JPEG, 10, outputStream);
 
         if (isCompressed) {
-            // Convert the compressed image to a byte array
             byte[] compressedImageData = outputStream.toByteArray();
 
-            // Optionally, save the compressed image to a file (example code commented out)
-            // FileOutputStream fileOutputStream = new FileOutputStream(new File(getExternalFilesDir(null), "compressed_image.jpg"));
-            // fileOutputStream.write(compressedImageData);
-            // fileOutputStream.close();
+            if (compressedImageData != null && compressedImageData.length > 0) {
+                Bitmap compressedBitmap = BitmapFactory.decodeByteArray(compressedImageData, 0, compressedImageData.length);
 
-            // Decode the byte array back into a Bitmap
-            Bitmap compressedBitmap = BitmapFactory.decodeByteArray(compressedImageData, 0, compressedImageData.length);
-
-            // Set the compressed Bitmap to the ImageView
-            scannedImageView.setImageBitmap(compressedBitmap);
+                if (compressedBitmap != null) {
+                    runOnUiThread(() -> scannedImageView.setImageBitmap(compressedBitmap));
+                } else {
+                    Log.e("ImageCompression", "Failed to decode compressed image data");
+                }
+            } else {
+                Log.e("ImageCompression", "Compressed image data is empty or null");
+            }
         } else {
-            // Handle the error case where compression failed
             Log.e("ImageCompression", "Failed to compress the image");
         }
     }
