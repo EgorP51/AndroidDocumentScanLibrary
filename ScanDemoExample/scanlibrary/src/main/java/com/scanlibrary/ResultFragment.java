@@ -5,16 +5,18 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.util.Log;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
@@ -104,27 +106,23 @@ public class ResultFragment extends Fragment {
     }
 
     public void setScannedImage(Bitmap scannedImage) {
-        // Convert the bitmap to a byte array to check its size
+        Log.d(TAG, "setScannedImage: Setting image to ImageView");
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         scannedImage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         byte[] byteArray = stream.toByteArray();
 
-        // Check if the size is larger than 1MB (1MB = 1024 * 1024 bytes)
         if (byteArray.length > 1024 * 1024) {
-            // Compress the image until it's less than 1MB
-            int quality = 100; // Start with max quality
+            Log.d(TAG, "setScannedImage: Image exceeds 1MB, compressing");
+            int quality = 100;
             do {
-                stream.reset(); // Clear the stream for the next iteration
-                quality -= 5; // Reduce the quality by 5% increments
+                stream.reset();
+                quality -= 5;
                 scannedImage.compress(Bitmap.CompressFormat.JPEG, quality, stream);
                 byteArray = stream.toByteArray();
-            } while (byteArray.length > 1024 * 1024 && quality > 5); // Stop if quality is too low
+            } while (byteArray.length > 1024 * 1024 && quality > 5);
         }
 
-        // Create a new bitmap from the compressed byte array
         Bitmap compressedImage = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length);
-
-        // Set the (possibly compressed) image to the ImageView
         scannedImageView.setImageBitmap(compressedImage);
     }
 
