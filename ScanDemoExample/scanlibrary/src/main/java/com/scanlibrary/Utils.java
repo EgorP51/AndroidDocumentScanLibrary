@@ -33,30 +33,31 @@ public class Utils {
     }
 
     public static Bitmap getBitmap(Context context, Uri uri) throws IOException {
-        // Получаем bitmap без сжатия
         Bitmap originalBitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), uri);
 
-        // Ограничиваем ширину до 800 пикселей
-        int maxWidth = 800;
+        int maxSide = 800;
         int originalWidth = originalBitmap.getWidth();
         int originalHeight = originalBitmap.getHeight();
 
-        // Вычисляем новую высоту, сохраняя пропорции
-        int scaledWidth = originalWidth > maxWidth ? maxWidth : originalWidth;
-        int scaledHeight = (int) ((float) scaledWidth / originalWidth * originalHeight);
+        int scaledWidth;
+        int scaledHeight;
 
-        // Масштабируем изображение
+        if (originalWidth > originalHeight) {
+            scaledWidth = originalWidth > maxSide ? maxSide : originalWidth;
+            scaledHeight = (int) ((float) scaledWidth / originalWidth * originalHeight);
+        } else {
+            scaledHeight = originalHeight > maxSide ? maxSide : originalHeight;
+            scaledWidth = (int) ((float) scaledHeight / originalHeight * originalWidth);
+        }
+
         Bitmap scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, scaledWidth, scaledHeight, true);
 
-        // Сжимаем изображение в формат JPEG
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 50, outputStream);
 
-        // Освобождаем оригинальный Bitmap из памяти
         originalBitmap.recycle();
 
         byte[] compressedData = outputStream.toByteArray();
         return BitmapFactory.decodeByteArray(compressedData, 0, compressedData.length);
     }
-
 }
