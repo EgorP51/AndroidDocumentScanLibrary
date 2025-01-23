@@ -5,6 +5,8 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -14,7 +16,13 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 
+import com.scanlibrary.ProgressDialogFragment;
+import com.scanlibrary.ScanConstants;
+import android.graphics.BitmapFactory;
+import android.util.Log;
+
 import java.io.IOException;
+
 
 /**
  * Created by jhansi on 29/03/15.
@@ -46,6 +54,7 @@ public class ResultFragment extends Fragment {
     }
 
     private void init() {
+        Log.i("ResultFragment", "ResultFragment.java init start");
         scannedImageView = (ImageView) view.findViewById(R.id.scannedImage);
         originalButton = (Button) view.findViewById(R.id.original);
         if(getActivity().getIntent().getStringExtra(ScanConstants.SCAN_ORG_TEXT) != null){

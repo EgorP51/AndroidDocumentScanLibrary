@@ -178,13 +178,13 @@ public class PickImageFragment extends Fragment {
             getActivity().finish();
         }
         if (bitmap != null) {
-            
+
             if ( camorgal == 0 )
             {
             //PickImageFragment.this.getActivity().getContentResolver().notifyChange(fileUri, null);
             File imageFile = new File(fileUri.getPath());
             ExifInterface exif = null;
-            
+
             try
             {
                 exif = new ExifInterface(imageFile.getAbsolutePath());
@@ -193,13 +193,13 @@ public class PickImageFragment extends Fragment {
             {
                 e.printStackTrace();
             }
-            
+
             int orientation = 0;
             if (exif != null)
             {
                 orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
             }
-            
+
             int rotate = 0;
             switch (orientation) {
                 case ExifInterface.ORIENTATION_ROTATE_270:
