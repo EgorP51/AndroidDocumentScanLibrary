@@ -106,17 +106,28 @@ public class ResultFragment extends Fragment {
     }
 
     public void setScannedImage(Bitmap scannedImage) {
-        // Compress the image
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        scannedImage.compress(Bitmap.CompressFormat.JPEG, 10, outputStream);
-        byte[] compressedData = outputStream.toByteArray();
+        try {
+            // Compress the image
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            scannedImage.compress(Bitmap.CompressFormat.JPEG, 10, outputStream);
+            byte[] compressedData = outputStream.toByteArray();
 
-        // Decode the compressed data into a bitmap
-        Bitmap compressedBitmap = BitmapFactory.decodeByteArray(compressedData, 0, compressedData.length);
+            // Decode the compressed data into a bitmap
+            Bitmap compressedBitmap = BitmapFactory.decodeByteArray(compressedData, 0, compressedData.length);
 
-        // Set the compressed bitmap to the ImageView
-        scannedImageView.setImageBitmap(compressedBitmap);
+            // Set the compressed bitmap to the ImageView
+            scannedImageView.setImageBitmap(compressedBitmap);
+        } catch (OutOfMemoryError e) {
+            Log.e("setScannedImage", "OutOfMemoryError: Failed to process the image", e);
+            // Show a fallback image or notify the user
+            scannedImageView.setImageResource(R.drawable.error_image); // замените на ваш ресурс
+        } catch (Exception e) {
+            Log.e("setScannedImage", "Exception: Failed to set the scanned image", e);
+            // Handle generic errors
+            scannedImageView.setImageResource(R.drawable.error_image); // замените на ваш ресурс
+        }
     }
+
 
     private class DoneButtonClickListener implements View.OnClickListener {
         @Override
