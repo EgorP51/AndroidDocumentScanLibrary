@@ -5,6 +5,8 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -13,9 +15,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.util.Log;
+
+import com.scanlibrary.ProgressDialogFragment;
+import com.scanlibrary.ScanConstants;
 
 import java.io.IOException;
+
 
 /**
  * Created by jhansi on 29/03/15.
