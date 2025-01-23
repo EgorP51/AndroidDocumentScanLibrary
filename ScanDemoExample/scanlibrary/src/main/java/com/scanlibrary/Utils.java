@@ -31,6 +31,21 @@ public class Utils {
     }
 
     public static Bitmap getBitmap(Context context, Uri uri) throws IOException {
-        return MediaStore.Images.Media.getBitmap(context.getContentResolver(), uri);
+        // Получаем bitmap без сжатия
+        Bitmap originalBitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), uri);
+
+        // Изменение размера изображения
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, 800, 800, true);
+
+        // Сжимаем изображение в формат JPEG
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 50, outputStream);
+
+        // Освобождаем оригинальный Bitmap из памяти
+        originalBitmap.recycle();
+
+        byte[] compressedData = outputStream.toByteArray();
+        return BitmapFactory.decodeByteArray(compressedData, 0, compressedData.length);
+
     }
 }

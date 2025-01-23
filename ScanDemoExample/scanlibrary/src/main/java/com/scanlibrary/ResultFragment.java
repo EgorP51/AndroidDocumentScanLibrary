@@ -5,18 +5,16 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.util.Log;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
@@ -106,24 +104,8 @@ public class ResultFragment extends Fragment {
     }
 
     public void setScannedImage(Bitmap scannedImage) {
-        try {
-            // Compress the image
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            scannedImage.compress(Bitmap.CompressFormat.JPEG, 10, outputStream);
-            byte[] compressedData = outputStream.toByteArray();
-
-            // Decode the compressed data into a bitmap
-            Bitmap compressedBitmap = BitmapFactory.decodeByteArray(compressedData, 0, compressedData.length);
-
-            // Set the compressed bitmap to the ImageView
-            scannedImageView.setImageBitmap(compressedBitmap);
-        } catch (OutOfMemoryError e) {
-            Log.e("setScannedImage", "OutOfMemoryError: Failed to process the image", e);
-        } catch (Exception e) {
-            Log.e("setScannedImage", "Exception: Failed to set the scanned image", e);
-        }
+        scannedImageView.setImageBitmap(scannedImage);
     }
-
 
     private class DoneButtonClickListener implements View.OnClickListener {
         @Override
