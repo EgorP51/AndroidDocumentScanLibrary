@@ -1,0 +1,2 @@
+project(':scanlibrary').projectDir = new File(rootDir, 'ScanDemoExample/scanlibrary/')
+include ':scanlibrary'
