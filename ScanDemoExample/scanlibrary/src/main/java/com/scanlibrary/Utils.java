@@ -10,6 +10,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.Date;
+import android.graphics.BitmapFactory;
+
 
 /**
  * Created by jhansi on 05/04/15.

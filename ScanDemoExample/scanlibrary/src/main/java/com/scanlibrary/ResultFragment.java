@@ -18,6 +18,8 @@ import android.widget.ImageView;
 
 import com.scanlibrary.ProgressDialogFragment;
 import com.scanlibrary.ScanConstants;
+import android.graphics.BitmapFactory;
+import android.util.Log;
 
 import java.io.IOException;
 
