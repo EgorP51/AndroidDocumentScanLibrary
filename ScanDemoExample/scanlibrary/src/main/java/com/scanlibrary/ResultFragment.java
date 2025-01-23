@@ -119,12 +119,8 @@ public class ResultFragment extends Fragment {
             scannedImageView.setImageBitmap(compressedBitmap);
         } catch (OutOfMemoryError e) {
             Log.e("setScannedImage", "OutOfMemoryError: Failed to process the image", e);
-            // Show a fallback image or notify the user
-            scannedImageView.setImageResource(R.drawable.error_image); // замените на ваш ресурс
         } catch (Exception e) {
             Log.e("setScannedImage", "Exception: Failed to set the scanned image", e);
-            // Handle generic errors
-            scannedImageView.setImageResource(R.drawable.error_image); // замените на ваш ресурс
         }
     }
 
